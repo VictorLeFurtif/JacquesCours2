@@ -3,54 +3,24 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using Random = UnityEngine.Random;
+
 
 public class FightManager : MonoBehaviour
 {
     [SerializeField] private GameObject player;
     [SerializeField] private GameObject ia;
-    public int playerHealth = 100;
-    public int iaHealth = 100;
-    public TMP_Text playerHealthText;
-    public TMP_Text iaHealthText;
-    
-    void Start()
-    {
-        playerHealthText.text = ""+playerHealth;
-        iaHealthText.text = ""+iaHealth;
-    }
-
-    public int pvPlayer
-    {
-        get => playerHealth;
-
-        set
-        {
-            playerHealth = value;
-            UpdatePlayerHealth();
-        }
-    }
-
-    public void UpdatePlayerHealth()
-    {
-        playerHealthText.text = ""+playerHealth;
-    }
-    
-    public int pvIa
-    {
-        get => iaHealth;
-
-        set
-        {
-            iaHealth = value;
-            UpdateIaHealth();
-        }
-    }
-
-    public void UpdateIaHealth()
-    {
-        iaHealthText.text = ""+iaHealth;
-    }
-    
+    public PLayer playerManager;
+    public Robot robot;
+    public TMP_Text runText;
+    public TMP_Text runText2;
+    [SerializeField] private List<GameObject> canvasGameList;
+    public TMP_Text aiVictory;
+    public TMP_Text playerVictory;
+    public Slider sliderPlayer;
+    public Slider sliderIA;
+    public BallScript bS;
     
     public enum FightState
     {
@@ -88,6 +58,7 @@ public class FightManager : MonoBehaviour
     public void IAUISet()
     {
         ia.SetActive(true);
+        robot.ManageAITurn();
     }
     public void PlayerUIDis()
     {
@@ -103,5 +74,56 @@ public class FightManager : MonoBehaviour
         ChangeStateFighter(FightState.IA);
     }
     
+    public void ClicktoHeal()
+    {
+        playerManager.Heal();
+        Debug.Log("Heal player");
+    }
+
+    public void AttackFire()
+    {
+        playerManager.AttackFire();
+        bS.AnimBall();
+        Debug.Log("Attaque Player fire");
+    }
     
+    public void AttackWater()
+    {
+        playerManager.AttackWater();
+        bS.AnimBall();
+        Debug.Log("Attaque player water");
+    }
+
+    public void ClickToRun()
+    {
+        playerManager.Run();
+        Debug.Log("Run away");
+    }
+
+    public void DisableCanvasGameRun()
+    {
+        foreach (var i in canvasGameList)
+        {
+            i.SetActive(false);
+        }
+    }
+
+    private void Update()
+    {
+        Win();
+    }
+
+    public void Win()
+    {
+        if (playerManager.playerHealth <= 0)
+        {
+            DisableCanvasGameRun();
+            aiVictory.gameObject.SetActive(true);
+        }
+        if (robot.iaHealth <= 0)
+        {
+            DisableCanvasGameRun();
+            playerVictory.gameObject.SetActive(true);
+        }
+    }
 }
