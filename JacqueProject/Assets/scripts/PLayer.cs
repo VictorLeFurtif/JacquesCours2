@@ -1,78 +1,73 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class PLayer : MonoBehaviour
 {
-    public int playerHealth = 100;
     public TMP_Text playerHealthText;
     public FightManager ftManager;
     public Robot robot;
-    
+    public PlayerData data; // Data that we cant modify
+    public PlayerDataInstance inGameData; // Data that we can modify thanks to PlayerData
+
+    public void Awake()
+    {
+        inGameData = data.Instance(); // Let us handle the data from PlayerData
+    }
+
+
     void Start()
     {
-        playerHealthText.text = ""+playerHealth;
+        playerHealthText.text = "" + inGameData.health;
     }
+
     public int pvPlayer
     {
-        get => playerHealth;
+        get => inGameData.health;
 
         set
         {
-            playerHealth = value;
+            inGameData.health = value;
             UpdatePlayerHealth();
+            if (inGameData.IsDead())
+            {
+                ftManager.WinIA();
+            }
         }
     }
 
     public void UpdatePlayerHealth()
     {
-        playerHealthText.text = ""+playerHealth;
+        playerHealthText.text = "" + pvPlayer;
     }
 
     public void Heal()
     {
-        if (playerHealth < 75)
-        {
-            pvPlayer += 25;
-            pvPlayer = Mathf.Clamp(pvPlayer,0,100);
-            ftManager.sliderPlayer.value = pvPlayer;
-        }
-        else
-        {
-            pvPlayer = 100;
-            pvPlayer = Mathf.Clamp(pvPlayer,0,100);
-            ftManager.sliderPlayer.value = pvPlayer;
-            
-        }
-        EndTurn();
+        inGameData.ApplySpell(inGameData.heal);
+        pvPlayer = Mathf.Clamp(pvPlayer, 0, data.Health);
+        ftManager.sliderPlayer.value = pvPlayer;
+        ftManager.EndTurn(FightManager.FightState.Player);
+        Debug.Log("Tu te heales");
     }
+
     public void AttackFire()
     {
-        robot.pvIa -= 25;
-        robot.pvIa = Mathf.Clamp(robot.pvIa,0,100);
+        robot.inGameData.ApplySpell(inGameData.spell1);
+        robot.pvIa = Mathf.Clamp(robot.pvIa, 0, data.Health);
         ftManager.sliderIA.value = robot.pvIa;
-        EndTurn();
+        ftManager.EndTurn(FightManager.FightState.Player);
+        Debug.Log("Tu attaques feu");
     }
+
     public void AttackWater()
     {
-        robot.pvIa -= 25;
-        robot.pvIa = Mathf.Clamp(robot.pvIa,0,100);
+        robot.inGameData.ApplySpell(inGameData.spell2);
+        robot.pvIa = Mathf.Clamp(robot.pvIa, 0, data.Health);
         ftManager.sliderIA.value = robot.pvIa;
-        EndTurn();
-    }
-    public void Run()
-    {
-        int chancenumber = Random.Range(1, 3);
-        if (chancenumber == 2)
-        {
-            ftManager.DisableCanvasGameRun();
-            ftManager.runText.gameObject.SetActive(true);
-        }
-        EndTurn();
-    }
-    public void EndTurn()
-    {
-        ftManager.ChangeStateFighter(FightManager.FightState.IA);
+        ftManager.EndTurn(FightManager.FightState.Player);
+        Debug.Log("Tu attaques eau");
     }
 }

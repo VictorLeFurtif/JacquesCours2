@@ -7,138 +7,135 @@ using Random = UnityEngine.Random;
 
 public class Robot : MonoBehaviour
 {
-    public int iaHealth = 100;
     public TMP_Text iaHealthText;
     public PLayer playerManager;
     public FightManager ftManager;
-    
+    public PlayerData data; // Data that we cant modify
+    public PlayerDataInstance inGameData; // Data that we can modify thanks to PlayerData
+    public AiBehaviorData aiBData;
+
+    public void Awake()
+    {
+        inGameData = data.Instance(); // Let us handle the data from PlayerData
+    }
+
     void Start()
     {
-        iaHealthText.text = ""+iaHealth;
+        iaHealthText.text = "" + inGameData.health; // Show health at begging
     }
+
     public int pvIa
     {
-        get => iaHealth;
+        get
+        {
+            if (inGameData == null)
+            {
+                inGameData = data.Instance();
+            }
+
+            return inGameData.health;
+        }
 
         set
         {
-            iaHealth = value;
-            UpdateIaHealth();
+            inGameData.health = value; // Set pvIA value to inGameDta.health value
+            UpdateIaHealthUI();
+            if (inGameData.IsDead())
+            {
+                ftManager.WinPlayer();
+            }
         }
     }
 
-    public void UpdateIaHealth()
+    private void UpdateIaHealthUI()
     {
-        iaHealthText.text = ""+iaHealth;
+        iaHealthText.text = "" + pvIa;
     }
-    
-    
+
     public enum AIState
     {
         loosing,
-        winning, 
+        winning,
     }
 
     public AIState m_currentAIState = AIState.winning;
-        
+
     public void DetermineState(int hp)
     {
-        m_currentAIState = hp < 50 ? AIState.loosing : AIState.winning;
+        m_currentAIState = hp <= data.Health * aiBData.ratioForLoosing ? AIState.loosing : AIState.winning;
     }
-        
+
     public void ManageAITurn()
     {
-        DetermineState(iaHealth);
-        switch (m_currentAIState )
+        DetermineState(pvIa);
+        switch (m_currentAIState)
         {
-            case AIState.loosing:ManageLoosing(); break;
-            case AIState.winning: ManageWinning(); break;
+            case AIState.loosing:
+                ManageLoosing();
+                break;
+            case AIState.winning:
+                ManageWinning();
+                break;
             default: throw new ArgumentOutOfRangeException();
-        }   
-        EndTurn();
+        }
+
+        ftManager.EndTurn(FightManager.FightState.IA);
     }
 
     public void ManageLoosing()
     {
         var rand = Random.Range(0, 100);
-        if (rand> 85)
+        if (rand > aiBData.ratioRunLoosing)
         {
-            RunAway();
-            ftManager.DisableCanvasGameRun();
+            ftManager.RunAway(FightManager.FightState.IA);
+
             Debug.Log("Ai s'enfuit");
             return;
-        } 
-        
-        if(rand > 70)
+        }
+
+        if (rand > aiBData.ratioHealLoosing)
         {
             Heal();
             Debug.Log("Ai se Heal");
             return;
         }
+
         Attack();
         Debug.Log("AI attaque");
-       
     }
 
     public void Attack()
     {
-        playerManager.pvPlayer -= 20;
-        playerManager.pvPlayer = Mathf.Clamp(playerManager.pvPlayer,0,100);
+        playerManager.inGameData.ApplySpell(inGameData.spell1);
+        playerManager.pvPlayer = Mathf.Clamp(playerManager.pvPlayer, 0, data.Health);
         ftManager.sliderPlayer.value = playerManager.pvPlayer;
-
     }
-    
+
     public void Heal()
     {
-        if (iaHealth < 75)
-        {
-            pvIa += 25;
-            pvIa = Mathf.Clamp(pvIa, 0, 100);
-            ftManager.sliderIA.value = pvIa;
-        }
-        else
-        {
-            pvIa = 100;
-            pvIa = Mathf.Clamp(pvIa, 0, 100);
-            ftManager.sliderIA.value = pvIa;
-        }
+        inGameData.ApplySpell(inGameData.heal);
+        pvIa = Mathf.Clamp(pvIa, 0, data.Health);
+        ftManager.sliderIA.value = pvIa;
     }
-    
-    public void RunAway()
-    {
-        int chancenumber = Random.Range(1, 3);
-        if (chancenumber == 2)
-        {
-            ftManager.DisableCanvasGameRun();
-            ftManager.runText2.gameObject.SetActive(true);
-        }
-      
-    }
-    
+
     public void ManageWinning()
     {
         var rand = Random.Range(0, 100);
-        if (rand> 95)
+        if (rand > aiBData.ratioRunWinning)
         {
-            RunAway();
+            ftManager.RunAway(FightManager.FightState.IA);
             Debug.Log("Ai s'enfuit");
             return;
-        } 
-        
-        if(rand > 70)
+        }
+
+        if (rand > aiBData.ratioHealWinning)
         {
             Heal();
             Debug.Log("Ai se Heal");
             return;
         }
+
         Attack();
         Debug.Log("AI attaque");
-
     }
-
-    public void EndTurn()
-    {
-        ftManager.ChangeStateFighter(FightManager.FightState.Player);
-    }
-
 }
